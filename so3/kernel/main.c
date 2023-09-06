@@ -97,13 +97,13 @@ void *rest_init(void *dummy) {
 /*
  * Humm, something useful for us?
  */
-// void hidden_init(void) {
-// 	volatile int *ptr = NULL;
+void hidden_init(void) {
+	volatile int *ptr = NULL;
 
-// 	*ptr = 0xbeef;
+	*ptr = 0xbeef;
 
-//     /* Ok, now you should know what to remove... */
-// }
+    /* Ok, now you should know what to remove... */
+}
 
 
 void kernel_start(void) {
@@ -134,7 +134,7 @@ void kernel_start(void) {
 
 	calibrate_delay();
 
-	//hidden_init();
+	hidden_init();
 
 	/*
 	 * Perform the rest of bootstrap sequence in a separate thread, so that
