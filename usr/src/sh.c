@@ -178,7 +178,7 @@ void main(int argc, char *argv[])
 	char user_input[80];
 	int i;
 	struct sigaction sa;
-	int *ptr = NULL;
+	//int *ptr = NULL;
 
 	memset(&sa, 0, sizeof(struct sigaction));
 
@@ -198,7 +198,7 @@ void main(int argc, char *argv[])
 		if (strcmp(user_input, ""))
 			parse_token(user_input);
 
-		*ptr = 0xdeadbeef;
+		//*ptr = 0xdeadbeef;
 
 		/* Check if there is at least one token to be processed */
 		if (tokens[0][0] != 0)
