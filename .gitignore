@@ -1,0 +1,50 @@
+# Ignore all generated files :
+*.[oa]
+*.cmd
+*.tmp*
+*.log
+*.ko
+*.mk
+*.builtin
+*.dtb
+*.su
+
+**/doxy/**
+**/generated/**
+
+**/include/config/**
+**/qemu/**
+usr/build/**
+
+so3/arch/arm*/asm-offsets.s
+so3/scripts/basic/fixdep
+so3/scripts/dtc/dtc
+so3/scripts/kconfig/conf
+so3/scripts/kconfig/lex.zconf.c
+so3/scripts/kconfig/zconf.hash.c
+so3/scripts/kconfig/zconf.tab.c
+usr/lib/libc/include/asm
+
+# Backup files
+*~
+*.d
+
+# Hidden files
+.*
+
+# image files
+filesystem/*.img
+so3/so3*
+rootfs/board
+target/*.itb
+
+
+# except the followings:
+!.gitignore #Don't ignore the ignore file ;-)
+!*.tmpl #TaMPLate files for the man documentation
+!buildroot/**
+!buildroot/docs/manual/*.mk
+!agency/rootfs/*.mk
+!agency/rootfs/package/**
+!agency/rootfs/board/**/*.d
+
