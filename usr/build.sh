@@ -72,9 +72,11 @@ mkdir -p $SCRIPTPATH/build
 cd $SCRIPTPATH/build
 
 if [ "$PLATFORM" == "virt32" -o "$PLATFORM" == "vexpress" -o "$PLATFORM" == "rpi4" ]; then
+set -e
 cmake -Wno-dev --no-warn-unused-cli -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_TOOLCHAIN_FILE=../arm_toolchain.cmake ..
 fi
 if [ "$PLATFORM" == "virt32" -o "$PLATFORM" == "virt64" -o "$PLATFORM" == "rpi4_64" ]; then
+set -e
 cmake -Wno-dev --no-warn-unused-cli -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_TOOLCHAIN_FILE=../aarch64_toolchain.cmake ..
 fi
 if [ $singlecore == y ]; then
@@ -87,6 +89,7 @@ if [ $verbose == y ]; then
 else
 	make -j$NRPROC
 fi
+exit 0
 cd -
 
 
