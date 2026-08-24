@@ -54,8 +54,22 @@ Get the container
 =================
 
 Everything is built inside a container, so the only thing you install on your
-machine is Docker. There is nothing to fetch by hand: the first command that
-needs the image pulls it and keeps it.
+machine is Docker. The image is published on the GitHub Container Registry and
+is **public** — no GitHub account, no ``docker login``:
+
+.. code-block:: console
+
+   $ docker pull ghcr.io/smartobjectoriented/sye-build:1.0
+   $ docker tag ghcr.io/smartobjectoriented/sye-build:1.0 sye-build:1.0
+
+The second command gives the image its working name, ``sye-build:1.0``, which is
+what the scripts look for. The image weighs about 3 GB, so the pull takes a few
+minutes on a decent connection; everything after it starts instantly, from your
+local copy.
+
+Those two commands are a convenience, not a step you can get wrong by skipping:
+the first command that needs the image and does not find it pulls and names it
+for you.
 
 .. code-block:: console
 
@@ -64,10 +78,6 @@ needs the image pulls it and keeps it.
    [dbuild] pulling ghcr.io/smartobjectoriented/sye-build:1.0
    [dbuild] tagged as sye-build:1.0
    arm-linux-musleabihf-gcc (GCC) 12.4.0
-
-The image is public: no GitHub account, no ``docker login``. It is about 3 GB,
-so that first command takes a few minutes on a decent connection; every one
-after it starts instantly, using the local copy.
 
 To force a fresh download later — a new image was published, or yours is
 suspect:
