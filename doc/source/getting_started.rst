@@ -22,7 +22,8 @@ What you need
      $ docker run --rm hello-world        # must work without sudo
 
 * About **20 GB** of free disk space, and a network connection for the first
-  build (the recipes fetch U-Boot, QEMU and the MUSL toolchain sources).
+  build — to pull the container image, and for the one recipe that still
+  fetches sources of its own (the MUSL toolchain).
 
 You do **not** need to install any cross compiler: the build container carries
 all of them.
@@ -133,9 +134,12 @@ Three steps, always in this order:
    $ dbuild.sh deploy.sh bsp-so3         # fill it and write the boot image
    $ dbuild.sh st.sh                     # boot it under QEMU
 
-* **build** compiles the whole dependency tree: U-Boot, the SO3 kernel, the
-  MUSL toolchain, the user-space applications and the root filesystem, and — the
-  first time — the patched QEMU.
+* **build** compiles the SO3 kernel, the user-space applications and the root
+  filesystem, then assembles the BSP. The MUSL cross toolchain, U-Boot and QEMU
+  are **not** rebuilt: the container ships them ready-made and each recipe steps
+  aside when it finds one there (:ref:`container`). Build one of them in the
+  tree yourself — ``build.sh -x uboot``, ``build.sh -x qemu`` — and yours wins
+  from then on, at build time and at run time.
 * **filesystem** creates and partitions the empty SD-card image
   (``filesystem/sdcard.img.virt32``). It is a **one-off**: later builds and
   deploys reuse it.

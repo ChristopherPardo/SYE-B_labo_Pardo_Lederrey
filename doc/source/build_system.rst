@@ -132,9 +132,10 @@ A few ``IB_*`` variables select the target and what is built for it:
    * - ``IB_TARGET_ITS:so3:virt32``
      - the **FIT image** template to assemble — ``virt32_so3``.
    * - ``IB_BUILD_QEMU``
-     - build the patched QEMU along with the BSP the first time (``1`` by
-       default). Set to ``0`` for a build-only setup that never runs the
-       emulator.
+     - build the patched QEMU along with the BSP when no emulator is
+       available yet (``1`` by default). Inside the container there is nothing
+       to do — it ships one under ``/opt/qemu``. Set to ``0`` for a build-only
+       setup that never runs the emulator.
    * - ``IB_STORAGE_MODE:virt32``
      - ``soft`` — the SD-card is a plain image file under ``filesystem/``.
 
@@ -179,7 +180,7 @@ rebuilding.
    deploy against a fresh tree fails until the image exists. The canonical
    first-build sequence is therefore three steps::
 
-      build.sh bsp-so3        # compile kernel + user space + U-Boot + rootfs + FIT
+      build.sh bsp-so3        # compile kernel + user space + rootfs + FIT
       build.sh -x filesystem  # create + format the SD-card image (privileged, once)
       deploy.sh bsp-so3       # populate the rootfs and write the boot media
 
