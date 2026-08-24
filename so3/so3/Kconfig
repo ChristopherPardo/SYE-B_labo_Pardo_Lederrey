@@ -1,0 +1,117 @@
+
+
+mainmenu "SO3 Polymorphic OS Configuration"
+ 
+source "arch/Kconfig"
+
+source "kernel/Kconfig"
+ 
+source "devices/Kconfig" 
+
+source "apps/Kconfig"
+
+source "fs/Kconfig"
+source "ipc/Kconfig"
+source "mm/Kconfig"
+ 
+config RTOS
+	bool "RTOS-featured enabled"
+ 
+config AVZ
+	bool "AVZ SO3 Hypervisor mode (Agency Virtualizer)"
+	depends on MMU
+
+config USER_INIT_PROGRAM
+	string "Specifies the initial user-space ELF executable to be started at system boot"
+	default "init.elf"
+
+choice
+	prompt "Kernel Log Level"
+	default LOG_LEVEL_INFO
+	help
+	  Select the minimum kernel log level that will be compiled and shown.
+	  Messages below this level will be excluded or suppressed, helping to
+	  reduce verbosity and potentially improve performance.
+
+config LOG_LEVEL_CRITICAL
+	bool "Critical"
+	help
+	  Only critical logs will be shown. Use this for production systems
+	  where stability is key and minimal logging is preferred.
+
+config LOG_LEVEL_ERROR
+	bool "Error"
+	help
+	  Show only error and critical messages. Suitable for stable
+	  environments where only actionable errors are logged.
+
+config LOG_LEVEL_WARNING
+	bool "Warning"
+	help
+	  Show warning, error, and critical messages. Helps catch
+	  non-critical issues without too much verbosity.
+
+config LOG_LEVEL_INFO
+	bool "Info"
+	help
+	  Show informational messages, warnings, errors, and critical logs.
+	  Good balance for general usage and system diagnostics.
+
+config LOG_LEVEL_DEBUG
+	bool "Debug"
+	help
+	  Show debug, info, warning, error, and critical messages.
+	  Useful during development and troubleshooting.
+
+config LOG_LEVEL_TRACE
+	bool "Trace"
+	help
+	  Show all log levels including trace messages. Maximum verbosity
+	  for deep debugging and detailed execution flow analysis.
+
+config LOG_LEVEL_NONE
+    bool "No Logging"
+    help
+      Disable all logging. CONFIG_LOG_LEVEL will be unset.
+      Use this for ultra-minimal builds or maximum performance or
+      if you want to enable LOG in selected files.
+
+endchoice
+
+config LOG_LEVEL
+    int
+    default 1 if LOG_LEVEL_CRITICAL
+    default 2 if LOG_LEVEL_ERROR
+    default 3 if LOG_LEVEL_WARNING
+    default 4 if LOG_LEVEL_INFO
+    default 5 if LOG_LEVEL_DEBUG
+    default 6 if LOG_LEVEL_TRACE
+    depends on !LOG_LEVEL_NONE
+
+if !AVZ && !ARCH_ARM32
+config SOO
+	bool "Configure SO3 as a SO3 capsule (capsule)"
+endif
+
+if AVZ
+config SOO
+	bool "Configure AVZ to support SOO technology"
+
+config S3C_POOL_SIZE_MB
+	int "Size of the capsule (S3C) memory pool (MB)"
+	default 512
+	help
+	  Physical memory reserved for capsule memslots, starting right after
+	  the agency memslot. The pool is additionally clamped at run time to
+	  the end of the platform RAM, but firmware carve-outs invisible to
+	  AVZ (e.g. the VideoCore memory on the Raspberry Pi 4, typically
+	  from 0x3ec00000) must be excluded here: a capsule slot overlapping
+	  such a region corrupts the firmware silently.
+endif
+
+config MMU
+	bool "MMU enable"
+ 
+# SOO subsystem and drivers
+source "soo/Kconfig"
+

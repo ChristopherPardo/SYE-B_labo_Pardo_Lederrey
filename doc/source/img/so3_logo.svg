@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 180" width="480" height="180"
+     role="img" aria-label="SO3 — Smart Object Oriented Operating System">
+  <title>SO3 — Smart Object Oriented Operating System</title>
+  <desc>A layered stack — one code base, three deployments — wrapped by two open
+  arcs forming an S, with the nodes that link them. Project logo, REDS Institute
+  / HEIG-VD.</desc>
+
+  <!-- Palette: SO3 blue #0057D7 and SO3 orange #FE6701, sampled from the
+       original raster mark (img/so3_logo.png). Drawn for a light background
+       (landing page); so3_logo_light.svg is the light-on-dark variant for the
+       sidebar. Same geometry in both — keep them in step. -->
+
+  <!-- The open ring: the smart object, broken where the stack passes through -->
+  <g fill="none" stroke-linecap="round" stroke-width="9">
+    <path d="M 127.28 35.57 A 58 58 0 0 0 35.50 99.84" stroke="#FE6701"/>
+    <path d="M 47.50 119.84 A 58 58 0 0 0 149.51 133.27" stroke="#1E7FE0"/>
+  </g>
+
+  <!-- The layered stack: standalone OS, AVZ hypervisor, SO3 capsule -->
+  <g stroke="none">
+    <path d="M 58 108 L 96 123 L 134 108 L 134 116 L 96 131 L 58 116 Z" fill="#0A3690"/>
+    <path d="M 58 108 L 96  93 L 134 108 L  96 123 Z" fill="#0F47B8"/>
+    <path d="M 58  86 L 96 101 L 134  86 L 134  94 L 96 109 L 58 94 Z" fill="#1D6DC0"/>
+    <path d="M 58  86 L 96  71 L 134  86 L  96 101 Z" fill="#2E90F0"/>
+    <path d="M 58  64 L 96  79 L 134  64 L 134  72 L 96  87 L 58 72 Z" fill="#D25200"/>
+    <path d="M 58  64 L 96  49 L 134  64 L  96  79 Z" fill="#FE6701"/>
+  </g>
+
+  <!-- Dotted trails, node to stack -->
+  <g fill="none" stroke-linecap="round" stroke-width="4.5" stroke-dasharray="0.1 9">
+    <path d="M 123 46 Q 113 55 101 60" stroke="#FE6701"/>
+    <path d="M 57 116 Q 70 106 83 96" stroke="#2E90F0"/>
+    <path d="M 108 96 Q 128 116 141 128" stroke="#1E7FE0"/>
+  </g>
+
+  <!-- Nodes -->
+  <g fill="#FFFFFF" stroke-width="5.5">
+    <circle cx="127.28" cy="35.57" r="9.5" stroke="#FE6701"/>
+    <circle cx="47.50" cy="119.84" r="9.5" stroke="#2E90F0"/>
+    <circle cx="149.51" cy="133.27" r="9.5" stroke="#0057D7"/>
+    <circle cx="96" cy="88" r="11" stroke="#FE6701" stroke-width="6"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="DejaVu Sans, Helvetica, Arial, sans-serif">
+    <text x="210" y="96" font-size="74" font-weight="700" letter-spacing="5" fill="#0057D7">SO<tspan fill="#FE6701">3</tspan></text>
+    <text x="212" y="120" font-size="13" letter-spacing="2.4" fill="#3E7BD4">SMART OBJECT ORIENTED</text>
+    <text x="212" y="138" font-size="13" letter-spacing="2.4" fill="#3E7BD4">OPERATING SYSTEM</text>
+  </g>
+</svg>

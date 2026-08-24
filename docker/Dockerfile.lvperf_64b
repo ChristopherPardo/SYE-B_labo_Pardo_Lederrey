@@ -1,0 +1,60 @@
+# LVGL performance image for SO3 (virt64), built with Infrabase.
+#
+# Copyright (c) 2025-2026 REDS Institute, HEIG-VD
+#
+# Image build (non-privileged): warm the Infrabase component builds — the MUSL
+# toolchain (meta-toolchain), QEMU (meta-qemu), U-Boot, the kernel and the user
+# space — so that a `docker run` only has to (re)build the user space against a
+# possibly-mounted LVGL, assemble the boot image and run the perf test.
+#
+# Container run (REQUIRES --privileged: the SD-card image is created via
+# losetup/mkfs/mount): rebuild usr, assemble + deploy the FIT/sdcard, then launch
+# the patched QEMU on the lv_perf configuration. The virt64_lvperf kernel runs
+# the LVGL benchmark as its init program; when it finishes, the root process
+# exits and the kernel performs a semihosting exit, so QEMU (-semihosting) halts
+# and the container exits with the perf output.
+#
+# Run:   docker run -it --privileged -v /dev:/dev so3-lvperf64b
+# See docker/README.md for the LVGL/SO3/U-Boot mount-override options.
+
+FROM ghcr.io/smartobjectoriented/so3-toolchains:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV QEMU_ARCH=aarch64
+ENV PLATFORM=virt64
+
+WORKDIR /so3
+
+# The whole repo is needed (build/ layers + conf, scripts/, env.sh, so3/).
+# build/tmp, the fetched u-boot/qemu/avz trees and .git are excluded via
+# .dockerignore; Infrabase re-fetches what it needs during the build below.
+COPY . /so3
+
+# Select the lv_perf virt64 build. Appended (last assignment wins) so they
+# override whatever the committed local.conf selects.
+RUN { \
+      echo ''; \
+      echo '# --- lv_perf (virt64) image overrides ---'; \
+      echo 'IB_PLATFORM = "virt64"'; \
+      echo 'IB_CONFIG:so3:virt64 = "virt64_lvperf_defconfig"'; \
+      echo 'IB_TARGET_ITS:so3:virt64 = "virt64_lvperf"'; \
+      echo 'IB_BOOT_CHAIN = ""'; \
+      echo 'EXTRA_OVERRIDES .= ":lvgl"'; \
+    } >> build/conf/local.conf
+
+# Build everything non-privileged: the full BSP, which on virt64 also pulls in
+# the emulator (meta-qemu) automatically since its binary is absent here.
+# `build.sh bsp-so3` is privilege-free — it only compiles (usr, u-boot, the
+# kernel, the MUSL toolchain, qemu) and creates an empty rootfs.fat; the
+# privileged rootfs loop-mount happens later, in deploy.sh.
+RUN bash -c 'set -e; . ./env.sh; build.sh bsp-so3'
+
+# Hook to add extra dependencies at run time without rebuilding the image.
+RUN printf '#!/bin/sh\n' > install_dependencies.sh && chmod +x install_dependencies.sh
+
+# Run time (REQUIRES --privileged): rebuild usr (picks up a mounted LVGL),
+# create+format the SD-card image (build.sh -x filesystem: losetup/fdisk/mkfs — privileged,
+# hence deferred here), then deploy.sh assembles the FIT, populates the rootfs
+# (loop-mount) and writes the sdcard; finally run the perf QEMU.
+CMD ["bash", "-c", "set -e; . ./env.sh; ./install_dependencies.sh; build.sh -x usr-so3; build.sh -x filesystem; deploy.sh bsp-so3; docker/scripts/run.sh"]

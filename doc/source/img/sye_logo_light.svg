@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" width="600" height="180"
+     role="img" aria-label="SYE — Systèmes d'exploitation">
+  <title>SYE — Systèmes d'exploitation</title>
+  <desc>A machine split by the user/kernel boundary: three processes above, the
+  kernel below, and a system call crossing between them. Course logo, REDS
+  Institute / HEIG-VD.</desc>
+
+  <!-- Light-on-dark variant of sye_logo.svg, for the dark documentation
+       sidebar (html_logo). Same geometry; slate replaced by white, the red
+       accent unchanged. Keep the two files in step. -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round">
+
+    <!-- The machine -->
+    <rect x="30" y="28" width="220" height="124" rx="14"/>
+
+    <!-- User space: three processes, the middle one making the call -->
+    <rect x="48" y="46" width="52" height="32" rx="5"/>
+    <rect x="114" y="46" width="52" height="32" rx="5" stroke="#E0241A"/>
+    <rect x="180" y="46" width="52" height="32" rx="5"/>
+
+    <!-- The user/kernel boundary -->
+    <path d="M 46 92 H 234" stroke-width="3" stroke-dasharray="7 7"/>
+
+    <!-- Kernel space -->
+    <rect x="48" y="108" width="184" height="32" rx="5" fill="#FFFFFF"/>
+
+    <!-- The system call, crossing the boundary both ways -->
+    <g stroke="#E0241A" stroke-width="6" stroke-linecap="round">
+      <path d="M 140 82 V 106"/>
+      <path d="M 133 89 L 140 82 L 147 89"/>
+      <path d="M 133 99 L 140 106 L 147 99"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="DejaVu Sans, Helvetica, Arial, sans-serif">
+    <text x="330" y="100" font-size="72" font-weight="700" letter-spacing="6"
+          fill="#FFFFFF">SYE</text>
+    <text x="332" y="128" font-size="17" letter-spacing="0.6" fill="#C9CDD6">Systèmes d'exploitation</text>
+  </g>
+</svg>

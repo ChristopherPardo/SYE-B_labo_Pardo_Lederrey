@@ -1,0 +1,164 @@
+
+v6.3.0 (12 aug 2026)
+
+Minor release opening the 6.3 line. It carries the developer build container
+and a documentation correctness pass on top of v6.2.5.
+
+	•	A ready-made build environment: docker/build-env plus scripts/dbuild.sh.
+		The image carries only the environment — both Arm 64-bit toolchains,
+		including the bare-metal aarch64-none-elf the SO3 and AVZ kernels need
+		and that hand-provisioned hosts routinely miss, the 32-bit apt
+		toolchains, and the host packages listed in packages.txt. The repository
+		stays on the host, bind-mounted at its own absolute path so bitbake
+		stamps and the buildroot host tree stay valid and a tree can be built
+		from inside or outside the container interchangeably, and the container
+		runs as the calling host user so nothing comes back root-owned.
+		One entry point covers everything: dbuild.sh --build to make the image,
+		a bare dbuild.sh for an interactive shell with env.sh already sourced,
+		and dbuild.sh <script> for any front-end script (st.sh -d included, the
+		X11 display and cookie are forwarded). The CI images
+		(Dockerfile.toolchains, Dockerfile.env) and the LVGL perf-rig images
+		are untouched.
+
+	•	A correctness pass over the documentation set: the hypercall, driver,
+		ITS and application inventories match the tree again, kernel paths are
+		quoted relative to so3/so3, the coding conventions state what the CI
+		actually enforces, the JTAG chapter is up to date and the documentation
+		version is derived from the release tag.
+
+	•	Everything in v6.2.5: the untracked build-materialized user-space files
+		that made a fresh clone unbuildable, Build and Style running on the
+		release branches so a release commit is validated before it is tagged,
+		and the musl tarball fetched from a mirror.
+
+v6.2.5 (10 aug 2026)
+
+Patch release on the 6.2 line, fixing the release plumbing itself: the v6.2.4
+tree could not be built from a fresh clone at all.
+
+	•	The tree-wide copyright e-mail alignment ran over a built working tree
+		and committed 37 files the build materializes itself: usr/lib/lv_conf.h,
+		the usr/lib/slv/ sources, the quilt staging directory usr/patches/ and
+		the generated usr/src/{fillfb,lvgl_*}.c. On a fresh clone the lvgl patch
+		set then found its own outputs already in place and do_patch died on the
+		very first patch ("would create lib/lv_conf.h, which already exists").
+		Local incremental trees never saw it — only fresh clones and the CI,
+		which had been red since. The files are untracked and the whole family
+		is now in .gitignore.
+
+	•	The Build and Style workflows only ran on main, yet tags are cut on
+		release/vX.Y — the very commits a release points at were the only ones
+		never built. They now also run on release/**, and release_process.rst
+		documents the pre-tag check. On main, build (virt32) and build (virt64)
+		are required status checks.
+
+	•	SO3_KERNEL_VERSION_FALLBACK is back in sync with the tag. A build from a
+		tree without git metadata (tarball, bitbake workdir copy) banners this
+		constant, and v6.2.4 shipped it still reading 6.2.3.
+
+v6.2.4 (17 jul 2026)
+
+Patch release on the 6.2 line. Mostly the Raspberry Pi 4 support, whose 64-bit
+side had never actually been exercised: several assumptions left over from the
+32-bit rpi4 platform only surfaced once the I2C/Sense HAT path was enabled on
+rpi4_64. All of it validated on real hardware (RPi 4 Model B, Sense HAT), on
+both word sizes.
+
+•	i2c_bsc and rpisense could not be selected on rpi4_64 at all: their Kconfig
+	still depended on RPI4, a symbol dropped with the 32-bit platform. Lined
+	them up on "RPI4 || RPI4_64", as devices/serial/Kconfig already was.
+
+•	Both drivers stored the io_map() return value in a uint32_t. io_map()
+	returns addr_t, and on arm64 the mapped address sits at
+	CONFIG_IO_MAPPING_BASE (0xffff9000_00000000), so the top half was cut off
+	and the driver dereferenced the truncated address. As they are
+	REGISTER_DRIVER_CORE, they probe before the POSTCORE serial console: the
+	abort killed the kernel with no output at all. arm32 was unaffected, its
+	IO_MAPPING_BASE being 0xe0000000.
+
+•	bsp/rpi4/config.txt never got the 64-bit boot settings, so the firmware
+	looked for kernel7l.img while the deploy installs the aarch64 U-Boot as
+	kernel8.img, and nothing was loaded. The 32/64-bit settings now live in
+	appended config_rpi4_arm{32,64}.txt fragments, since the file is shared.
+
+•	A fitted Sense HAT made U-Boot boot in complete silence: the firmware merges
+	the HAT's EEPROM overlay into the device tree it hands over, and that DT has
+	no /chosen/stdout-path, so U-Boot picked its console by node order and drove
+	the wrong UART. force_eeprom_read=0 avoids it; SO3 talks to the HAT through
+	rpisense and never needs the overlay.
+
+•	Ctrl-C did nothing on rpi4, for every program: bcm283x_mu was polling-only,
+	so nothing ever raised SIGINT. Bound the mini UART RX interrupt (AUX, SPI
+	93) and mirrored pl011_int(). This also fixed the register layout, copied
+	from U-Boot with iir before ier — harmless while neither field was read,
+	wrong the moment ier is written.
+
+•	Signals never reached a thread blocked in the kernel: sys_do_kill() only set
+	a pcb bit, and a thread parked in wait_for_completion() is off the ready
+	list. Added signal_pending(), wait_for_completion_interruptible() and a
+	selective wake of interruptible waiters.
+
+•	The RPi bootcmd imported uEnv.txt with neither format nor length, so U-Boot
+	scanned memory for a double-NUL to guess the size and swallowed whatever
+	followed the file. It only appeared to work on arm64 by luck. Now passes
+	-t and ${filesize}.
+
+•	bsp/rpi4 shipped no device tree: the .dtb are vendored firmware inputs, but
+	the "*.dtb" ignore rule — right for every other .dtb, which are build
+	products — swallowed them when the directory moved under meta-bsp. Cards
+	flashed before the move still carried the old ones, which is why nothing had
+	flagged it; a fresh card got none.
+
+•	Restored the 32-bit Raspberry Pi 4 platform. The tree was already written
+	for it ("RPI4 || RPI4_64" in kernel/ and devices/); only the arch symbol and
+	its wiring were missing.
+
+•	The boot banner now states the architecture (e.g. "Version 6.2.4 (arm64)").
+	On a Pi 4 the two chains differ only by which kernel*.img the firmware picks
+	up, so nothing on the console told you which one had booted.
+
+•	Deploy now initialises the storage itself when it is missing, instead of
+	failing on a bare "sdcard.img.<plat> does not exist" — init_storage.sh was
+	an undocumented prerequisite.
+
+•	Aligned the copyright e-mail on daniel.rossier@heig-vd.ch across the tree —
+	the address README.md points contributors to.
+
+v6.2.3 (15 jul 2026)
+
+Patch release on the 6.2 line fixing the non-SOO AVZ configuration on GICv3
+platforms (Verdin iMX8MP), validated on hardware before tagging.
+
+•	Gated the S3C_CPU paths on CONFIG_SOO: in a non-SOO AVZ build the guest
+	runs on all CPUs, but gic_handle_dist_access() still discarded every
+	distributor access trapped from CPU 3 — on verdin-imx8mp (GICD trapped
+	for the whole agency) any interrupt enabled or routed from CPU 3 was
+	silently lost, causing minutes-long boot stalls and lcdifv3
+	flip_done/vblank timeout storms. GICv2 platforms were unaffected.
+•	The periodic/capsule tick path no longer runs on CPU 3 in non-SOO
+	builds (same wrong assumption, agency accounting skipped).
+
+v2021.4.1 (29 jan 2021)
+
+This release includes support for graphics (LVGL) and networking based on “lwip”.
+
+•	Added support for LVGL (https://lvgl.io) (early stage)
+•	Added support for gettimeofday() and clock_gettime()
+•	New scheduling policy based on dynamic priorities
+•	Added support for networking based on lwip (early stage)
+
+
+v2021.4.0 (28 jan 2021)
+
+Major changes have been made at the system and device level:
+
+•	Improvements of fdt parsing and file organization
+•	Revisited device model based on devclass with private structure
+•	Improvements of initcall processing, adding post_initcall 
+•	Fixed numerous bugs in cache handling especially on Cortex-A72
+•	Simplified model of the MMU configuration at bootstrap
+•	Added support of rpi 4 Sense-hat extension
+•	Added post-init initcall for late initialization
+•	64 KB Stack size of all threads
+•	Fixed bugs related to process loading and page list management
+•	Fixed bugs in frame table management

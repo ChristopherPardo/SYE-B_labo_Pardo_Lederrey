@@ -1,0 +1,17 @@
+config PL050_KMI
+	bool "PL050 Keyboard/Mouse Interface"
+	depends on VIRT32 || VIRT64
+
+config SOO_INPUT
+	bool "SOO Virtualized input device"
+	depends on SOO && !AVZ
+
+config VIRT_INPUT
+	bool "Virtual input device"
+	help
+		Creates virtual input devices, such as keyboards and mice,  
+		to maintain user-space compatibility for applications that  
+		require input devices in environments where physical ones
+		are unavailable. This allows running an unmodified version  
+		of QEMU without requiring special patches for input support.
+	depends on VIRT32 || VIRT64

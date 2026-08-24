@@ -1,0 +1,88 @@
+# For more options and information see
+# http://rpf.io/configtxt
+# Some settings may impact device functionality. See link above for details
+
+# uncomment if you get no picture on HDMI for a default "safe" mode
+#hdmi_safe=1
+
+# uncomment this if your display has a black border of unused pixels visible
+# and your display can output without overscan
+#disable_overscan=1
+
+# uncomment the following to adjust overscan. Use positive numbers if console
+# goes off screen, and negative if there is too much border
+#overscan_left=16
+#overscan_right=16
+#overscan_top=16
+#overscan_bottom=16
+
+# uncomment to force a console size. By default it will be display's size minus
+# overscan.
+#framebuffer_width=1280
+#framebuffer_height=720
+
+# uncomment if hdmi display is not detected and composite is being output
+#hdmi_force_hotplug=1
+
+# uncomment to force a specific HDMI mode (this will force VGA)
+#hdmi_group=1
+#hdmi_mode=1
+
+# uncomment to force a HDMI mode rather than DVI. This can make audio work in
+# DMT (computer monitor) modes
+#hdmi_drive=2
+
+# uncomment to increase signal to HDMI, if you have interference, blanking, or
+# no display
+#config_hdmi_boost=4
+
+# uncomment for composite PAL
+#sdtv_mode=2
+
+#uncomment to overclock the arm. 700 MHz is the default.
+#arm_freq=800
+
+# Uncomment some or all of these to enable the optional hardware interfaces
+#dtparam=i2c_arm=on
+#dtparam=i2s=on
+#dtparam=spi=on
+
+# Uncomment this to enable infrared communication.
+#dtoverlay=gpio-ir,gpio_pin=17
+#dtoverlay=gpio-ir-tx,gpio_pin=18
+
+# Additional overlays and parameters are documented /boot/overlays/README
+
+# Enable audio (loads snd_bcm2835)
+dtparam=audio=on
+
+[pi4]
+# Enable DRM VC4 V3D driver on top of the dispmanx display stack
+dtoverlay=vc4-fkms-v3d
+max_framebuffers=2
+
+[all]
+#dtoverlay=vc4-fkms-v3d
+
+enable_uart=1
+
+# Don't read an attached HAT's EEPROM. The firmware would merge the HAT's own
+# overlay into the device tree it hands to U-Boot, and that DT carries no
+# /chosen/stdout-path — so U-Boot picks its console by DT node order, which the
+# merge perturbs: with a Sense HAT fitted, U-Boot drives the wrong UART and
+# boots in complete silence. SO3 talks to the HAT through its own rpisense
+# driver and never needs the overlay. Applies to both 32- and 64-bit.
+force_eeprom_read=0
+
+# The 32/64-bit boot settings are NOT here: this file is shared by every rpi4
+# BSP, and the two chains need opposite values (kernel7l.img vs kernel8.img).
+# bsp_rpi4.inc / bsp_rpi4_64.inc append the right config_rpi4_arm{32,64}.txt
+# fragment after copying this directory.
+
+# Diagnostic only — echoes the firmware's own boot stage on the UART, which is
+# how you tell a failure *before* U-Boot from a dead board. Leave it OFF for
+# normal boots: to print, the firmware muxes GPIO14/15 to the PL011 and resets
+# its baud, while the DT gives serial0 = the mini-UART (7e215040, the one SO3
+# drives). The pins then stay on the wrong peripheral and U-Boot's output never
+# reaches the wire.
+#uart_2ndstage=1

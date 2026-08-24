@@ -1,0 +1,86 @@
+# GitLab CI for the SYE course tree.
+#
+# One job: rebuild the sye-build container image and publish it to the
+# GitHub Container Registry, so students pull it instead of spending a
+# quarter of an hour compiling the MUSL toolchain.
+#
+# GitHub Actions is NOT an option here: this repository lives on
+# reds-gitlab, and Actions only runs on repositories hosted on GitHub.
+#
+# Required CI/CD variables (Settings -> CI/CD -> Variables), both
+# "Masked" and "Protected":
+#
+#   GHCR_USER    GitHub account that owns the token (e.g. daniel-rossier)
+#   GHCR_TOKEN   GitHub PAT with the write:packages scope
+#
+# Required runner: the `sye-image` tagged runner on runnerserver — a
+# shell executor whose gitlab-runner user is in the docker group, so the
+# job drives the host Docker daemon directly. That is why there is no
+# docker-in-docker here: the instance runner reds-calculator is not
+# privileged, dind cannot mount its filesystems there, and the job dies
+# at `docker login` with "unable to resolve docker endpoint".
+#
+# Copyright (c) 2026 REDS Institute - HEIG-VD
+
+stages:
+  - image
+
+# Keep the pipeline quiet: it exists for this one job, so only create a
+# pipeline when the image inputs actually change on the default branch,
+# or when someone starts it by hand from the UI.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - docker/build-env/**/*
+        - build/meta-toolchain/recipes-toolchain/musl/files/config.mak
+        - .gitlab-ci.yml
+
+build-image:
+  stage: image
+  # Do not exist at all until the registry credentials are configured:
+  # pushing this file before creating GHCR_USER / GHCR_TOKEN would
+  # otherwise turn every pipeline red at `docker login`. Once the
+  # variables are set the job appears on its own.
+  rules:
+    - if: $GHCR_USER && $GHCR_TOKEN
+  # Shell executor: no `image:`, no services. Pinning the tag keeps the
+  # job away from the untagged instance runners, which would take it and
+  # fail for lack of a usable Docker daemon.
+  tags:
+    - sye-image
+  variables:
+    IMAGE: ghcr.io/smartobjectoriented/sye-build
+  # The MUSL toolchain is binutils + gcc + musl compiled from source.
+  timeout: 2h
+  script:
+    # Build through dbuild.sh rather than assembling a context here. That
+    # context is not just docker/build-env: the musl, qemu and uboot stages
+    # each need files that live with their recipes and must not be
+    # duplicated into the image directory. Reproducing that assembly in this
+    # file is how it drifted — a stage was added, dbuild.sh learned about
+    # its patches, this job did not, and the build died on a missing
+    # /qemu-patches.
+    - . ./env.sh
+    - echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+    # :1.0 is what dbuild.sh and the documentation pin, so it moves.
+    # :<sha> is immutable and is what you roll back to.
+    - IB_DOCKER_IMAGE="$IMAGE:1.0" ./scripts/dbuild.sh --build
+    - docker tag "$IMAGE:1.0" "$IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$IMAGE:1.0"
+    - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"
+    # Housekeeping: every publish orphans the previous index and adds one
+    # more <short-sha> tag. Delete the untagged leftovers, and retire the
+    # sha tags past the three most recent (GHCR_SHA_KEEP) so the package
+    # page stays readable; :1.0 is never touched. Never blindly, though:
+    # with buildx the tag points at
+    # an OCI index whose children (the amd64 manifest and the provenance
+    # attestation) are themselves untagged, and deleting those breaks the
+    # image that was just pushed. Resolve the real children first and spare
+    # them. Needs delete:packages on GHCR_TOKEN; without it GitHub answers
+    # 403 and we say so rather than failing a successful publish.
+    - ./scripts/ci/ghcr-prune.py || echo "prune skipped (see above) — publish itself succeeded"
+  after_script:
+    - docker logout ghcr.io || true

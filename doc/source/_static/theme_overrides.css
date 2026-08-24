@@ -1,0 +1,32 @@
+/* -*- coding: utf-8; mode: css -*-
+ *
+ * Sphinx HTML theme customization: read the doc
+ *
+ */
+
+/* override table no-wrap */
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: normal;
+}
+
+.wy-nav-content {
+max-width: none;
+}
+
+.highlight {
+	max-height:300px;
+	overflow:auto;
+}
+
+/* html_logo is the light-on-dark variant of the SYE logo (white mark and
+ * wordmark, red accent), and the RTD theme's sidebar search area is a medium
+ * blue it would wash out against. Sit it on a dark rounded card instead — the
+ * logo's own slate. The theme's own ".wy-side-nav-search > a img.logo" rule
+ * forces "background: transparent" at the same specificity, so we match that
+ * selector and use !important to win. */
+.wy-side-nav-search a img.logo,
+.wy-side-nav-search img.logo {
+	background-color: #3B4252 !important;   /* the logo's slate */
+	padding: 10px 14px;
+	border-radius: 8px;
+}

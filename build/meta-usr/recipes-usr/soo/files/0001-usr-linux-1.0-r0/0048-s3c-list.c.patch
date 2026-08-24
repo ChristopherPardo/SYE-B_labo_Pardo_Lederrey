@@ -1,0 +1,96 @@
+--- /home/rossierd/soo/micofe/build/tmp/work/usr-linux-1.0-r0/usr-linux-1.0/src/soo/s3c-list.c	1970-01-01 01:00:00.000000000 +0100
++++ ./src/soo/s3c-list.c	2025-10-10 17:28:33.594328500 +0200
+@@ -0,0 +1,93 @@
++/*
++ * Copyright (C) 2018 Baptiste Delporte <bonel@bonel.net>
++ * Copyright (C) 2019-2021 Daniel Rossier <daniel.rossier@heig-vd.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++ *
++ */
++
++#include <stdlib.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <assert.h>
++#include <stdio.h>
++#include <inttypes.h>
++
++#include <sys/ioctl.h>
++
++#include <soo/uapi/soo.h>
++ 
++const char *S3C_state_str(int state) {
++
++	switch (state) {
++	case S3C_state_stopped:
++		return "S3C_state_stopped";
++	case S3C_state_living:
++		return "S3C_state_living";
++	case S3C_state_suspended:
++		return "S3C_state_suspended";
++	case S3C_state_hibernate:
++		return "S3C_state_hibernate";
++	case S3C_state_resuming:
++		return "S3C_state_resuming";
++	case S3C_state_awakened:
++		return "S3C_state_awakened";
++	case S3C_state_killed:
++		return "S3C_state_killed";
++	case S3C_state_terminated:
++		return "S3C_state_terminated";
++	case S3C_state_dead:
++		return "S3C_state_dead";
++	}
++
++	return "(n/a)";
++}
++
++/**
++ * Main entry point of the Agency core subsystem.
++ */
++int main(int argc, char *argv[]) {
++	int i, fd_core;
++	S3C_id_t id_array[MAX_S3C_DOMAINS];
++	agency_ioctl_args_t agency_ioctl_args;
++
++	printf("*** SOO - SO3 Capsule ID Retrieval ***\n\n");
++
++	fd_core = open("/dev/soo/core", O_RDWR);
++	assert(fd_core > 0);
++
++	/* Prepare to terminate the running S3C (dom #2) */
++	printf("*** List of residing SO3 Capsules: \n");
++
++	agency_ioctl_args.buffer = &id_array;
++	ioctl(fd_core, AGENCY_IOCTL_GET_S3C_ID_ARRAY, (unsigned long) &agency_ioctl_args);
++
++	for (i = 0; i < MAX_S3C_DOMAINS; i++) {
++		if (id_array[i].state == S3C_state_dead)
++			printf("  slot %d -> empty\n", i+2);
++		else {
++			printf("  slot %d -> spid: %" PRIx64 "       name: %s       state: %s\n", i+2,
++				id_array[i].spid, id_array[i].name,
++				S3C_state_str(id_array[i].state));
++
++			printf("             Short description: %s\n", id_array[i].shortdesc);
++		}
++	}
++
++	printf("done.\n");
++
++	close(fd_core);
++
++	return 0;
++}

@@ -1,0 +1,128 @@
+/*
+ * Copyright (C) 2025 André Costa <andre_miguel_costa@hotmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
+
+/* Based on virt32.dts */
+ 
+/dts-v1/;
+ 
+/ {
+	model = "SO3 Virt32";
+	compatible = "arm,virt32";
+
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		device_type = "cpu";
+		compatible = "arm,virt32";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x41000000 0x20000000>; /* 512 MB */
+	};
+	
+	agency {
+	        domain-size = <0x10000000>; /* 256 MB */
+	};
+
+	fw-cfg@9020000 {
+		reg = <0x9020000 0x18>;
+		compatible = "qemu,fw-cfg-mmio";
+		status = "disabled";
+	};
+	
+	/* GIC interrupt controller */
+	gic:interrupt-controller@0x08000000 {
+		compatible = "intc,gic";
+		interrupt-controller;
+		#interrupt-cells = <3>;
+		
+		reg = <0x08000000 0x1000
+			   0x08010000 0x1000>;
+			  
+		status = "ok";
+	};
+	
+	/* QEMU/virt console UART */
+	serial@09000000 {
+		compatible = "serial,pl011";
+		reg = <0x09000000 0x1000>;
+		interrupt-parent = <&gic>;
+		interrupts = <0 1 4>;
+		status = "ok";
+	};
+
+	/* Periodic timer based on ARM CP15 timer */
+	periodic-timer {
+		compatible = "arm,periodic-timer";
+		interrupt-parent = <&gic>;
+		interrupts = <1 11 4>;
+		status = "ok";
+	};
+	
+	/* Clocksource free-running timer based on ARM CP15 timer */
+	clocksource-timer {
+		compatible = "arm,clocksource-timer";
+		status = "ok";
+	};
+
+	mydev {
+		compatible = "arm,mydev";
+		status = "ok";
+	};
+
+	/* 
+	 * Virtual Framebuffer with no output
+	 */
+	virtfb {
+		compatible = "virt,fb";
+		hres = <1024>;
+		vres = <768>;
+		status = "ok";
+	};
+
+	virtkeyboard {
+		compatible = "virt,keyboard";
+		status = "ok";
+	};
+
+	virtmouse {
+		compatible = "virt,mouse";
+		status = "ok";
+	};
+
+	
+	/* SMSC LAN9118 Ethernet MAC (so3 QEMU patch, VIRT_ETH @ 0x08804000).
+	 * QEMU's stock 'virt' machine has no Ethernet controller SO3 can drive —
+	 * only virtio-net — so the machine model adds one next to the other SO3
+	 * devices. Not at the 0x1a000000 vexpress-a15 uses: that address falls
+	 * inside the PCIe MMIO window, whose gpex alias shadows anything mapped
+	 * underneath it. */
+	ethernet@08804000 {
+		compatible = "smsc,smc911x";
+		reg = <0x08804000 0x1000>;
+
+		interrupt-parent = <&gic>;
+		/* SPI 15 — matches irqmap[VIRT_ETH] in the so3 QEMU patch. */
+		interrupts = <0 15 4>;
+
+		status = "ok";
+	};
+    	
+};

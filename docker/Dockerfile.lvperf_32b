@@ -1,0 +1,42 @@
+# LVGL performance image for SO3 (virt32), built with Infrabase.
+#
+# Copyright (c) 2025-2026 REDS Institute, HEIG-VD
+#
+# Same flow as Dockerfile.lvperf_64b, for the 32-bit virt machine. See that file
+# and docker/README.md for the build-time / run-time (privileged) split and the
+# mount-override options.
+#
+# Run:   docker run -it --privileged -v /dev:/dev so3-lvperf32b
+
+FROM ghcr.io/smartobjectoriented/so3-toolchains:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV QEMU_ARCH=arm
+ENV PLATFORM=virt32
+
+WORKDIR /so3
+
+COPY . /so3
+
+# Select the lv_perf virt32 build (last assignment wins).
+RUN { \
+      echo ''; \
+      echo '# --- lv_perf (virt32) image overrides ---'; \
+      echo 'IB_PLATFORM = "virt32"'; \
+      echo 'IB_CONFIG:so3:virt32 = "virt32_lvperf_defconfig"'; \
+      echo 'IB_TARGET_ITS:so3:virt32 = "virt32_lvperf"'; \
+      echo 'IB_BOOT_CHAIN = ""'; \
+      echo 'EXTRA_OVERRIDES .= ":lvgl"'; \
+    } >> build/conf/local.conf
+
+# Non-privileged: build the full BSP (compile only; the privileged rootfs
+# loop-mount is deferred to deploy.sh at run time). On virt32 the BSP build
+# also pulls in the emulator (meta-qemu) automatically, as its binary is absent.
+RUN bash -c 'set -e; . ./env.sh; build.sh bsp-so3'
+
+RUN printf '#!/bin/sh\n' > install_dependencies.sh && chmod +x install_dependencies.sh
+
+# Run time (REQUIRES --privileged): rebuild usr, create+format the SD-card image
+# (build.sh -x filesystem, privileged), deploy (FIT + rootfs + sdcard), run.
+CMD ["bash", "-c", "set -e; . ./env.sh; ./install_dependencies.sh; build.sh -x usr-so3; build.sh -x filesystem; deploy.sh bsp-so3; docker/scripts/run.sh"]

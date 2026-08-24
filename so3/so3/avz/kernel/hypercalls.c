@@ -1,0 +1,284 @@
+/*
+ * Copyright (C) 2014-2026 Daniel Rossier <daniel.rossier@heig-vd.ch>
+ * Copyright (C) 2018 Baptiste Delporte <bonel@bonel.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
+
+#if 0
+#define DEBUG
+#endif
+
+#include <memory.h>
+#include <errno.h>
+#include <types.h>
+#include <percpu.h>
+
+#include <asm/io.h>
+#include <asm/cacheflush.h>
+
+#include <avz/evtchn.h>
+#include <avz/memslot.h>
+#include <avz/keyhandler.h>
+#include <avz/domain.h>
+#include <avz/sched.h>
+#include <avz/debug.h>
+#include <avz/console.h>
+#include <avz/injector.h>
+
+#ifdef CONFIG_SOO
+
+#include <soo/uapi/soo.h>
+#include <avz/fbdev_gnt.h>
+
+/**
+ * Return the state of the capsule corresponding to the S3C_slotID.
+ * If the capsule does not exist anymore (for example, following a KILL_S3C),
+ * the state is set to S3C_state_dead.
+ */
+S3C_state_t get_S3C_state(unsigned int S3C_slotID)
+{
+	if ((S3C_slotID >= MAX_DOMAINS) || (domains[S3C_slotID] == NULL))
+		return S3C_state_dead;
+	else
+		return domains[S3C_slotID]->avz_shared->dom_desc.u.S3C.state;
+}
+
+void set_S3C_state(unsigned int S3C_slotID, S3C_state_t state)
+{
+	if ((S3C_slotID >= MAX_DOMAINS) || (domains[S3C_slotID] == NULL)) {
+		printk("%s: no capsule in slot %d, ignoring.\n", __func__, S3C_slotID);
+		return;
+	}
+
+	domains[S3C_slotID]->avz_shared->dom_desc.u.S3C.state = state;
+}
+
+void shutdown_S3C(unsigned int S3C_slotID)
+{
+	struct domain *dom;
+
+	if ((S3C_slotID < MEMSLOT_BASE) || (S3C_slotID >= MAX_DOMAINS) || (domains[S3C_slotID] == NULL)) {
+		printk("%s: no capsule in slot %d, ignoring.\n", __func__, S3C_slotID);
+		return;
+	}
+
+	dom = domains[S3C_slotID];
+
+	/* Perform a removal of capsule */
+	dom->is_dying = DOMDYING_dead;
+	DBG("Shutdowning slotID: %d - Domain pause nosync ...\n", S3C_slotID);
+
+	vcpu_pause(dom);
+
+	DBG("Destroy evtchn if necessary - state: %d\n", get_S3C_state(S3C_slotID));
+	evtchn_destroy(dom);
+
+	DBG("Wiping domain area...\n");
+
+	memset((void *) memslot[S3C_slotID].base_vaddr, 0, memslot[S3C_slotID].size);
+
+	DBG("Destroying domain structure ...\n");
+
+	domain_destroy(dom);
+
+	DBG("Now resetting domains to NULL.\n");
+
+	/* bye bye dear capsule ! */
+	domains[S3C_slotID] = NULL;
+
+	/* Reset the slot availability */
+	put_S3C_slot(S3C_slotID);
+}
+
+/**
+ * Return the descriptor of a domain (agency or capsule).
+ * A size of 0 means there is no capsule in the slot.
+ */
+void get_dom_desc(uint32_t slotID, dom_desc_t *dom_desc)
+{
+	/* Check for authorization... (to be done) */
+
+	/*
+	 * If no capsule is present in the slot specified by slotID, we assign a size of 0 in the capsule descriptor.
+	 * We presume that the slotID of agency is never free...
+	 */
+
+	if ((slotID >= MAX_DOMAINS) || ((slotID > 1) && !memslot[slotID].busy))
+		dom_desc->u.S3C.size = 0;
+	else
+		/* Copy the content to the target desc */
+		memcpy(dom_desc, &domains[slotID]->avz_shared->dom_desc, sizeof(dom_desc_t));
+}
+
+#endif /* CONFIG_SOO */
+
+/**
+ * SOO hypercall processing.
+ */
+void do_avz_hypercall(void *__args)
+{
+#ifdef CONFIG_SOO
+	struct domain *dom;
+#endif
+	avz_hyp_t *args = (avz_hyp_t *) __args;
+
+	/* Dispatch the hypercall to the appropriate handler
+	 * or do the local processing.
+	 */
+
+	switch (args->cmd) {
+	case AVZ_CONSOLE_IO_OP:
+		do_console_io(&args->u.avz_console_io_args.console);
+		break;
+
+	case AVZ_DOMAIN_CONTROL_OP:
+		do_domctl(&args->u.avz_domctl_args.domctl);
+		break;
+
+	case AVZ_EVENT_CHANNEL_OP:
+		do_event_channel_op(args);
+		break;
+
+#ifdef CONFIG_SOO
+
+	case AVZ_GRANT_TABLE_OP:
+		do_gnttab(&args->u.avz_gnttab_args.gnttab_op);
+		break;
+
+	case AVZ_GET_DOM_DESC:
+		get_dom_desc(args->u.avz_dom_desc_args.slotID, &args->u.avz_dom_desc_args.dom_desc);
+		break;
+
+	case AVZ_S3C_READ_SNAPSHOT:
+		read_S3C_snapshot(args);
+		break;
+
+	case AVZ_S3C_WRITE_SNAPSHOT:
+		write_S3C_snapshot(args);
+		break;
+
+	case AVZ_INJECT_CAPSULE:
+		inject_capsule(args);
+		break;
+
+	case AVZ_START_CAPSULE:
+		start_capsule(args);
+		break;
+
+	case AVZ_DC_EVENT_SET:
+		/*
+		 * AVZ_DC_SET is used to assign a new dc_event number in the (target) domain shared info page.
+		 * This has to be done atomically so that if there is still a "pending" value in the field,
+		 * the hypercall must return with -BUSY; in this case, the caller has to busy-loop (using schedule preferably)
+		 * until the field gets free, i.e. set to DC_NO_EVENT.
+		 */
+
+		/* The target domain may have vanished in the meantime (typically a
+		 * shutdown request against an empty slot): report it to the caller
+		 * instead of panicking the hypervisor.
+		 */
+
+		if ((args->u.avz_dc_event_args.domID >= MAX_DOMAINS) ||
+		    ((dom = domains[args->u.avz_dc_event_args.domID]) == NULL)) {
+			printk("%s: AVZ_DC_EVENT_SET: no domain in slot %d\n", __func__, args->u.avz_dc_event_args.domID);
+			args->u.avz_dc_event_args.state = -ESRCH;
+			break;
+		}
+
+		/* The shared info page is set as non cacheable, i.e. if a CPU tries to update it, it becomes visible to 
+		 * other CPUs 
+		 */
+		if (atomic_cmpxchg(&dom->avz_shared->dc_event, DC_NO_EVENT, args->u.avz_dc_event_args.dc_event) != DC_NO_EVENT)
+			args->u.avz_dc_event_args.state = -EBUSY;
+		else
+			args->u.avz_dc_event_args.state = ESUCCESS;
+		break;
+
+	case AVZ_KILL_S3C:
+
+		shutdown_S3C(args->u.avz_kill_s3c_args.slotID);
+		break;
+
+	case AVZ_GET_S3C_STATE:
+		args->u.avz_s3c_state_args.state = get_S3C_state(args->u.avz_s3c_state_args.slotID);
+		break;
+
+	case AVZ_SET_S3C_STATE: {
+		set_S3C_state(args->u.avz_s3c_state_args.slotID, args->u.avz_s3c_state_args.state);
+		break;
+	}
+
+	case AVZ_FBDEV_SET_PFNS:
+		fbdev_set_pfns(&args->u.avz_fbdev_pfns_args.fbdev);
+		break;
+
+	case AVZ_FBDEV_CHANGE_FOCUS:
+		fbdev_change_focus(args->u.avz_fbdev_focus_args.new_slotID);
+		break;
+
+	case AVZ_FBDEV_GET_S3C_ADDR:
+		args->u.avz_fbdev_addr_args.paddr = fbdev_get_domain_ipa();
+		break;
+
+#endif /* CONFIG_SOO */
+
+	default:
+		printk("%s: Unrecognized hypercall: %d\n", __func__, args->cmd);
+		BUG();
+		break;
+	}
+
+	/* Cache maintenance: only the hypercalls which manipulate domain
+	 * memory or stage-2 mappings need a full dcache flush (so that the
+	 * other domains get a coherent view of that memory). Flushing
+	 * unconditionally made every console output and event notification
+	 * pay a full set/way walk; under emulation this is slow enough to
+	 * starve the capsule CPU between two ticks and turn any notification
+	 * burst into a softirq livelock (issue #274). */
+	switch (args->cmd) {
+#ifdef CONFIG_SOO
+	case AVZ_INJECT_CAPSULE:
+		/* Only the FINALIZE stage needs the flush: INIT does not touch
+		 * domain memory and the CHUNK stages get covered by the final
+		 * flush anyway (the dcache is PIPT, lines stay coherent per PA).
+		 */
+
+		if (args->u.avz_inject_capsule_args.stage == AVZ_STAGE_FINALIZE)
+			flush_dcache_all();
+		break;
+
+	case AVZ_S3C_READ_SNAPSHOT:
+	case AVZ_S3C_WRITE_SNAPSHOT:
+		/* Same reasoning as the injection above: one flush at the end of
+		 * the staged sequence covers the chunks that came before it.
+		 */
+
+		if (args->u.avz_snapshot_args.stage == AVZ_STAGE_FINALIZE)
+			flush_dcache_all();
+		break;
+
+	case AVZ_KILL_S3C:
+	case AVZ_GRANT_TABLE_OP:
+	case AVZ_FBDEV_SET_PFNS:
+	case AVZ_FBDEV_CHANGE_FOCUS:
+		flush_dcache_all();
+		break;
+#endif
+
+	default:
+		break;
+	}
+}

@@ -1,0 +1,15 @@
+--- /home/rossierd/soo/micofe/build/tmp/work/usr-linux-1.0-r0/usr-linux-1.0/src/soo/CMakeLists.txt	1970-01-01 01:00:00.000000000 +0100
++++ ./src/soo/CMakeLists.txt	2025-10-10 17:28:33.593542342 +0200
+@@ -0,0 +1,12 @@
++
++
++add_executable(s3c-inject s3c-inject.c)
++
++add_executable(s3c-save s3c-save.c)
++add_executable(s3c-restore s3c-restore.c)
++add_executable(s3c-shutdown s3c-shutdown.c)
++
++add_executable(s3c-list s3c-list.c)
++
++target_link_libraries(s3c-save zip)
++target_link_libraries(s3c-restore zip)

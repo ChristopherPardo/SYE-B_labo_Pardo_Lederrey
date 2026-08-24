@@ -1,0 +1,12 @@
+#
+# SOO SO3 capsule configuration
+#
+if SOO && !AVZ
+
+menu "SOO SO3 capsule - Smart Object Oriented subsystem"
+
+source "soo/drivers/Kconfig"
+
+endmenu
+
+endif

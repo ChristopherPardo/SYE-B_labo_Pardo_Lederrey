@@ -1,81 +1,102 @@
+<p align="center">
+  <img src="doc/source/img/so3_logo_dark_text.png" alt="SO3" width="420">
+</p>
 
-Before starting, you can have a look at the [SO3 discussion forum](https://discourse.heig-vd.ch/c/so3).
-Feel free to post any comments/suggestions/remarks about SO3. If you wish to participate to development, please simply ask us and we will manage separate branches of development. 
+# Welcome to SO3 — the Smart Object Oriented (SOO) Operating System
 
-# Initial setup
+SO3 is a compact, lightweight, full-featured and extensible operating system,
+particularly well suited to embedded and IoT systems. It is the result of
+several years of research and development at the REDS Institute of HEIG-VD, has
+long been used as a teaching platform, and today forms the foundation of the
+**SOO** framework.
 
-## Pre-requisite
+## A polymorphic operating system
 
-The [Linaro arm-linux-gnueabihf toolchain](https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-linux-gnueabihf) must be installed. Version 6.4.1 has been successfully tested, but more recent versions should be fine.
+The most distinctive feature of SO3 is that it is **polymorphic**: from a
+**single source tree**, the very same code base can be configured and built into
+three different kinds of system.
 
-## Files and directory organization
-* The SO3 tree is organized in two main parts: kernel and user space files.
-All kernel space related files are located in so3/ and the user space files are in 
-usr/
-* SO3 user space libc is based on the [musl library](https://musl.libc.org)
+- **Standalone OS** — SO3 runs directly on the hardware as a conventional
+  monolithic OS (kernel at **EL1**, user applications at **EL0** on ARM64). This
+  is the configuration used for teaching and for plain embedded products.
+- **AVZ hypervisor** — built with `CONFIG_AVZ`, the same tree becomes **AVZ**
+  (*Agency VirtualiZer*), a lightweight type-1 hypervisor running at **EL2** that
+  hosts one or more guest *domains* — the primary guest being the *agency*.
+- **SO3 capsule (S3C)** — on top of AVZ, the **SOO** framework adds *SO3
+  capsules*: lightweight, self-contained guests running at EL1 beside a Linux
+  *agency* and cooperating with it through split (frontend/backend) drivers. The
+  capsule (guest) side lives in this repository; the Linux agency and the rest
+  of the SOO framework live in a separate one.
 
-## Quick setup & early test
-The following commands is helpful to have quick up-and-running environment with SO3, 
-i.e. a shell running on top of the kernel in the emulated vExpress environment.
+SO3 targets ARM 32-bit and 64-bit, is multicore, and is kept *as compact as
+possible*. It ships with a MUSL-based user space and integrations such as LVGL,
+lwIP and MicroPython.
 
-### Building Qemu
-The emulator must be built in qemu/ using the command line described in README.so3 
-followed by invoking make (-j8 means parallel building on 8 cores):
+## Documentation
 
-```
-cd qemu
-./configure --target-list=arm-softmmu --disable-attr --disable-werror --disable-docs
-make -j8
+The complete and up-to-date documentation — philosophy, architecture, build
+system, user guide, debugging and more — is the source of truth. It lives in
+[`doc/`](doc/) and is published at:
 
-```
+### 👉 https://smartobjectoriented.github.io/so3
 
-### Compiling U-boot
-U-boot is used as initial bootloader. It will be possible to start an ITB image file 
-containing the kernel, the device tree and an initrd filesystem. In u-boot/ directory:
-```
-cd u-boot
-make vexpress_defconfig
-make -j8
-```
+Start there for everything about building, configuring, running and debugging
+SO3.
 
+## Supported targets
 
+- QEMU `virt` — ARM 32-bit and 64-bit
+- Raspberry Pi 4 (64-bit)
+- Toradex Verdin iMX8M Plus
 
-### Creating the virtual disk image
-In filesystem/ directory, create a virtual disk image with the following script:
-```
-cd filesystem
-./create_img.sh vexpress
-```
-### Compiling the user space
-To build the user space applications, go to usr/ directory and simply do make:
-```
-cd usr
-make
-```
-### Compiling the kernel space
-The kernel has to be compiled in so3/ after choosing a configuration:
-```
-cd so3
-make vexpress_mmc_defconfig
-make
-```
+## Contributing
 
-At this point, all necessary components have been built. Now comes the phase of deployment in the virtual disk.
-This done by means of the deploy.sh script located at the root tree.
+The `main` branch is the development line for the next version.
 
-Currently, you should only use option b and u to deploy the ITB image as well as the user apps.
-```
-./deploy.sh -bu
-```
+> [!IMPORTANT]
+> Do not push directly to `main`. Each development is tracked by an issue with
+> its own branch; open a merge/pull request as soon as it is stable enough for
+> review.
 
-### Starting SO3
-Simply invoking the script st as following:
-```
-./st
-```
-and you should run into the shell...
+If you would like to contribute, please first get in touch with the maintainer at
+[daniel.rossier@heig-vd.ch](mailto:daniel.rossier@heig-vd.ch).
 
+## Releases
 
+SO3 uses a branch-per-release model: development happens on `main`, and every
+minor version gets a long-lived `release/vX.Y` maintenance branch on which patch
+releases are tagged (`vX.Y.Z`, or `vX.Y.Z-rc` for candidates). Each tag has a
+matching [GitHub Release](https://github.com/smartobjectoriented/so3/releases).
 
+The full procedure — cutting patch and minor releases, tagging and publishing —
+is documented in
+[Release process](https://smartobjectoriented.github.io/so3/release_process.html).
 
+### Maintenance branches
 
+Each minor line has its own long-lived branch. Bug fixes for a published version
+land there and are tagged as patch releases.
+
+| Line | Branch | Latest release | Status |
+|------|--------|----------------|--------|
+| 6.3  | [`release/v6.3`](https://github.com/smartobjectoriented/so3/tree/release/v6.3) | [v6.3.0](https://github.com/smartobjectoriented/so3/releases/tag/v6.3.0) | Current stable |
+| 6.2  | [`release/v6.2`](https://github.com/smartobjectoriented/so3/tree/release/v6.2) | [v6.2.5](https://github.com/smartobjectoriented/so3/releases/tag/v6.2.5) | Previous |
+| 6.1  | [`release/v6.1`](https://github.com/smartobjectoriented/so3/tree/release/v6.1) | [v6.1.0](https://github.com/smartobjectoriented/so3/releases/tag/v6.1.0) | End of life |
+| 5.4  | [`release/v5.4`](https://github.com/smartobjectoriented/so3/tree/release/v5.4) | [v5.4.1](https://github.com/smartobjectoriented/so3/releases/tag/v5.4.1) | End of life |
+
+See all versions on the
+[Releases page](https://github.com/smartobjectoriented/so3/releases).
+
+## Credits
+
+We warmly thank our sponsors for their generous support in funding the
+development of the SO3 ecosystem, in particular
+[HEIG-VD](https://www.heig-vd.ch) and the
+[Hasler Foundation](https://haslerstiftung.ch/en/welcome-to-the-hasler-foundation).
+
+We are also grateful to all the contributors — developers, students, researchers
+and community members alike — whose code, ideas and feedback have shaped SO3.
+
+## License
+
+SO3 is released under the [GNU General Public License v2](LICENSE).

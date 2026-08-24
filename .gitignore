@@ -8,43 +8,167 @@
 *.builtin
 *.dtb
 *.su
+*.itb
 
 **/doxy/**
 **/generated/**
+**/optee_os/out/**
 
+**/build
+
+# The top-level infrabase metadata tree (/build) is matched by **/build above,
+# which used to force recipe sources (patches, .bb/.inc, conf) to be added with
+# `git add -f` — easy to forget, and a forgotten patch breaks CI parsing. Un-ignore
+# /build, re-ignore everything one level under it, then re-include only the source
+# dirs. Build output stays ignored: build/tmp (also build/.gitignore), build/cache,
+# build/bitbake.lock, logs/artifacts (*.log, *.o, *.dtb, *.itb, ... from the rules
+# above). Nested build/ dirs elsewhere (optee_os, agency, avz) remain ignored.
+!/build/
+/build/*
+!/build/conf/
+# bitbake itself lives under /build and is a tracked (vendored) tool, not build
+# output: the /build/* rule above re-ignores it, so it needs its own exception —
+# without it a fresh import silently drops the whole build engine.
+!/build/bitbake/
+!/build/meta-*/
+# The core layer has NO dash, so "meta-*" above does not match it: its classes
+# (base, patch, utils, logging, terminal) and conf/ were tracked only because
+# they predate the rule, and any file added there since would have been ignored
+# in silence — a new class simply never reaching the repository.
+!/build/meta/
+
+# Per-machine bitbake overrides (see build/meta/conf/bitbake.conf). The rule
+# just above re-includes all of build/conf/, so this one file needs its own.
+# The TEZI feed published by deploy.sh lives in build/deploy/ (along with the
+# feed server's pid/log) and is already covered by the /build/* rule.
+/build/conf/site.conf
+
+# The rpi4 BSP deploys Broadcom's prebuilt bcm27xx device trees onto the boot
+# partition, alongside start4.elf & co. Unlike every other .dtb in the tree they
+# are vendored *inputs*, not build products, so the "*.dtb" rule above must not
+# apply: it silently swallowed them when bsp/rpi4 moved under this recipe
+# directory, leaving the deploy with no device tree to install and a fresh card
+# unbootable (the firmware finds none, and U-Boot takes its own DT from the
+# firmware — CONFIG_OF_BOARD). Same shape as the /atf and /qemu anchoring notes
+# below.
+!/build/meta-bsp/recipes-bsp/bsp/rpi4/*.dtb
+
+# The fetched ATF source tree lives at the repo root (/atf), like /u-boot, /avz,
+# qemu. Anchor to /atf so the bare name doesn't also match the meta-atf recipe
+# directory (build/meta-atf/recipes-atf/atf), which holds tracked recipe sources.
+/atf/
+#vmlinux*
+uImage*
+domains*
+modules.order
+vmlinux.*dom*
 **/include/config/**
-**/qemu/**
-usr/build/**
 
-so3/arch/arm*/asm-offsets.s
-so3/scripts/basic/fixdep
-so3/scripts/dtc/dtc
-so3/scripts/kconfig/conf
-so3/scripts/kconfig/lex.zconf.c
-so3/scripts/kconfig/zconf.hash.c
-so3/scripts/kconfig/zconf.tab.c
-usr/lib/libc/include/asm
+# The QEMU source tree fetched by build.sh lives at the repo root (/qemu), like
+# /atf and /u-boot. Anchor to /qemu so the bare name doesn't also match the
+# meta-qemu recipe directory (build/meta-qemu/recipes-qemu/qemu), which holds
+# tracked recipe sources and patches.
+/qemu
 
 # Backup files
 *~
-*.d
 
 # Hidden files
 .*
 
-# image files
-filesystem/*.img
-so3/so3*
-rootfs/board
-target/*.itb
+# Eclipse stuff
+*.launch
+
+agency/rootfs/build/**
+agency/rootfs/host/**
+agency/rootfs/images/**
+agency/rootfs/target/**
 
 
 # except the followings:
-!.gitignore #Don't ignore the ignore file ;-)
-!*.tmpl #TaMPLate files for the man documentation
+#Don't ignore the ignore file ;-)
+!.gitignore
+!.github
+# Placeholders that keep an otherwise empty directory (e.g. the rootfs overlay
+# /etc/inittab.d) in the repository — hidden, but sources.
+!.gitkeep
+# Per-directory git metadata shipped by vendored trees (micropython/tools) is
+# part of their source, not local configuration.
+!.gitattributes
+#TaMPLate files for the man documentation
+!*.tmpl
+!.clang-format
+# CI definition — hidden, but it is the pipeline itself and must be tracked
+# or GitLab never sees it.
+!.gitlab-ci.yml
 !buildroot/**
 !buildroot/docs/manual/*.mk
 !agency/rootfs/*.mk
 !agency/rootfs/package/**
 !agency/rootfs/board/**/*.d
 
+*asm-offsets.s
+# SO3 sources are now nested under so3/ (so3/so3 = kernel, so3/usr, so3/rootfs, so3/target)
+so3/so3/so3
+so3/so3/so3.bin
+so3/usr/lib/libc/include/asm
+# MicroPython's build fragments are *sources*, not generated makefiles: the
+# global "*.mk" rule above would silently leave py/py.mk & co. out of the tree.
+!so3/usr/src/micropython/**/*.mk
+so3/rootfs/rootfs.fat
+# lvgl is fetched at build time (meta-usr lvgl bbappend, :lvgl override), not a submodule
+so3/usr/lib/lvgl/
+# ... and everything below is materialized into the usr tree by the lvgl
+# patch set / quilt at build time — never track it (a tracked copy makes
+# do_patch fail on a fresh clone with "would create ... which already exists")
+so3/usr/patches/
+so3/usr/lib/slv/
+so3/usr/lib/lv_conf.h
+so3/usr/src/fillfb.c
+so3/usr/src/lvgl_demo.c
+so3/usr/src/lvgl_perf.c
+so3/usr/src/lvgl_benchmark.c
+so3/usr/src/lvgl_widgets.c
+# The whole linux/ tree is a build working area, not committed: linux/linux
+# is the fetched agency kernel, linux/usr is regenerated from the meta-usr
+# patch set (base + :soo), linux/images holds rendered ITS + .itb output.
+# (so3/ differs: its kernel so3/so3 IS tracked in-tree.)
+/linux/
+# ITB build output (rendered ITS + .itb); ITS sources live in meta-bsp/recipes-bsp/*/files/its
+so3/images/
+so3/so3/scripts/basic/fixdep
+so3/so3/scripts/dtc/dtc
+so3/so3/scripts/kconfig/conf
+so3/so3/scripts/kconfig/lex.zconf.c
+so3/so3/scripts/kconfig/zconf.hash.c
+so3/so3/scripts/kconfig/zconf.tab.c
+
+# AVZ out-of-tree (O=) build dir — only the script + readme are tracked,
+# everything else is generated by `build.sh -x avz`.
+/avz/*
+!/avz/build.sh
+!/avz/README.md
+
+# u-boot is FETCHED (meta-uboot recipe: github 2022.04 @ pinned SRCREV +
+# the SO3 patch set), like qemu/avz — not kept in-tree. The build attaches
+# the fetched tree here (backing any prior copy up to u-boot.back).
+/u-boot/
+
+# filesystem/ is entirely build output (sdcard images, u-boot.bin, work symlink)
+/filesystem/
+
+# Junk / build backups
+*.deb
+*.back
+# patch/quilt reject & backup files (e.g. do_updiff regeneration leftovers)
+*.orig
+*.rej
+# do_attach_infrabase dirty-tree guard manifests (sibling of each attached
+# component tree, e.g. avz.attach.sha256, u-boot.attach.sha256)
+*.attach.sha256
+__pycache__/
+/scripts.old/
+
+# sye_student specifics: the shared VS Code configuration is tracked in the course
+# repo (it predates the "hidden files" rule above and students rely on it).
+!.vscode

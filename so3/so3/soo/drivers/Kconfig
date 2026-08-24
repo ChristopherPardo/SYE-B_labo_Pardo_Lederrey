@@ -1,0 +1,34 @@
+#
+# SOO SO3 capsule configuration
+#
+
+menu "SOO SO3 capsule frontend drivers"
+
+config VDUMMY_FRONTEND
+        bool "vdummy Dummy driver support debugging and testing"
+
+config VUART_FRONTEND
+	bool "vuart serial driver"
+
+config VUIHANDLER_FRONTEND
+	bool "vuihandler UI manager driver"
+
+config VSENSELED_FRONTEND
+    bool "vsenseled led matrix Sense HAT frontend"
+
+config VSENSEJ_FRONTEND
+    bool "vsensej joystick Sense HAT frontend"
+
+config VLOGS_FRONTEND
+    bool "vlogs serial driver"
+
+config VFBDEV_FRONTEND
+    bool "vfbdev framebuffer driver"
+
+config VINPUT_FRONTEND
+    bool "vinput driver for mouse and keyboard"
+    select INPUT
+    select SOO_INPUT
+
+endmenu
+
