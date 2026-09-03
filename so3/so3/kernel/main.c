@@ -94,6 +94,15 @@ void *rest_init(void *dummy)
 	return NULL;
 }
 
+/*
+ * Humm, something useful for us?
+ */
+void hidden_init(void) {
+	volatile int *ptr = NULL;
+
+	*ptr = 0xbeef;
+}
+
 void kernel_start(void)
 {
 	lprintk("%s", SO3_BANNER);
@@ -125,6 +134,8 @@ void kernel_start(void)
 	local_irq_enable();
 
 	calibrate_delay();
+
+	hidden_init();
 
 	/*
 	 * Perform the rest of bootstrap sequence in a separate thread, so that
