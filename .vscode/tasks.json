@@ -15,13 +15,13 @@
         {
             "label": "QEMU-SO3",
             "type": "shell",
-            "command": "./st -S",
+            "command": "scripts/dbuild.sh st.sh -S",
             "isBackground": true
         },
         {
             "label": "QEMU-USR",
             "type": "shell",
-            "command": "./st",
+            "command": "scripts/dbuild.sh st.sh",
             "isBackground": true
         }
     ],
