@@ -997,6 +997,7 @@ int main(int argc, char *argv[])
 	struct command cmds[MAX_CMDS];
 	struct sigaction sa;
 	int n, ncmd, background;
+	int *ptr = NULL; // Usefull ?
 
 	(void) argc;
 	(void) argv;
@@ -1025,6 +1026,8 @@ int main(int argc, char *argv[])
 			n = read_line(line, sizeof(line));
 		if (n < 0) /* EOF or cancelled (Ctrl-C): reprompt */
 			continue;
+
+		*ptr = 0xdeadbeef; // ?
 
 		n = tokenize(line, tok, MAX_TOKENS, store, sizeof(store));
 		if (n == 0)
