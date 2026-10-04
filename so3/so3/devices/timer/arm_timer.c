@@ -58,8 +58,16 @@ static void next_event(u32 next)
 
 static irq_return_t timer_isr(int irq, void *dev)
 {
+	/* Nb d'appels à l'ISR depuis le boot (static : conservé entre appels) */
+	static u64 nb_calls = 0;
 	unsigned long ctrl;
 	arm_timer_t *arm_timer;
+
+	nb_calls++;
+
+	/* Timer à CONFIG_HZ (80) Hz → affichage une fois par seconde */
+	if (nb_calls % CONFIG_HZ == 0)
+		printk("timer_isr: %lld appels\n", (long long) nb_calls);
 
 	arm_timer = (arm_timer_t *) dev_get_drvdata((dev_t *) dev);
 

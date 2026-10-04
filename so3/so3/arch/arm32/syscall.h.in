@@ -410,6 +410,7 @@
 #define __NR_set_mempolicy_home_node	450
 #define __NR_cachestat		451
 #define __NR_fchmodat2		452
+#define __NR_fork2          453
 
 #define __ARM_NR_breakpoint	0x0f0001
 #define __ARM_NR_cacheflush	0x0f0002

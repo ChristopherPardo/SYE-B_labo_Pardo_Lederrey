@@ -100,7 +100,7 @@ void *rest_init(void *dummy)
 void hidden_init(void) {
 	volatile int *ptr = NULL;
 
-	*ptr = 0xbeef;
+	//*ptr = 0xbeef;
 }
 
 void kernel_start(void)

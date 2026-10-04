@@ -16,6 +16,8 @@
 
 **/build
 
+./commandlines.txt
+
 # The top-level infrabase metadata tree (/build) is matched by **/build above,
 # which used to force recipe sources (patches, .bb/.inc, conf) to be added with
 # `git add -f` — easy to forget, and a forgotten patch breaks CI parsing. Un-ignore

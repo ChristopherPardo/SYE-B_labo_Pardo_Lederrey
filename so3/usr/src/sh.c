@@ -1027,11 +1027,15 @@ int main(int argc, char *argv[])
 		if (n < 0) /* EOF or cancelled (Ctrl-C): reprompt */
 			continue;
 
-		*ptr = 0xdeadbeef; // ?
+//		*ptr = 0xdeadbeef; // ?
 
 		n = tokenize(line, tok, MAX_TOKENS, store, sizeof(store));
 		if (n == 0)
 			continue;
+
+		/* Affiche les tokens de la commande, un par ligne */
+		for (int i = 0; i < n; i++)
+			printf("%s\n", tok[i]);
 
 		ncmd = parse_commands(n, tok, cmds, MAX_CMDS, &background);
 		if (ncmd < 0)

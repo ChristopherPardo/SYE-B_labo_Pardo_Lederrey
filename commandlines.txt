@@ -1,0 +1,33 @@
+Depuis racine repo, à chaque nouveau terminal :
+
+bash
+. ./env.sh
+
+1re fois seulement (build image Docker) :
+
+bash
+dbuild.sh --build
+
+Compiler + déployer + lancer :
+
+bash
+dbuild.sh                  # entre dans Docker
+build.sh bsp-so3           # compile SO3 (noyau + user)
+deploy.sh bsp-so3          # assemble image de boot + rootfs
+st.sh                      # lance QEMU → SO3
+
+Ou sans entrer dans Docker :
+
+bash
+dbuild.sh build.sh bsp-so3
+dbuild.sh deploy.sh bsp-so3
+dbuild.sh st.sh
+
+Quitter QEMU : ctrl+a puis x.
+
+Recompiler juste espace user (ex. après modif sh.c, hello.c) — cf. doc/source/user_space.rst :
+
+bash
+build.sh -x usr-so3
+
+Puis deploy.sh bsp-so3 + st.sh quand même, pour mettre à jour rootfs.

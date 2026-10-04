@@ -1,0 +1,1 @@
+bien capter pk direct stop du MMU qd déréférence ptr = NULL (un truc comme ça) plusieurs fois dans le labo

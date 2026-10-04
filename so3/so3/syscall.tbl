@@ -62,6 +62,7 @@ rt_sigprocmask          rt_sigprocmask          IPC_SIGNAL
 getpid                  getpid                  MMU
 execve                  execve                  MMU
 fork                    fork                    MMU
+fork2                   fork2                   MMU
 clone                   clone                   MMU
 set_tid_address         set_tid_address         MMU
 exit                    exit                    MMU
